@@ -1,0 +1,42 @@
+.sidebar {
+  position:fixed; left:0; top:0; bottom:0; width:var(--sw);
+  background:#1a3a5c;
+  display:flex; flex-direction:column; z-index:200; transition:width .2s; overflow:hidden;
+}
+.sidebar.collapsed { width:56px; }
+
+.sidebar-logo {
+  display:flex; align-items:center; gap:8px; padding:16px 14px;
+  border-bottom:1px solid rgba(255,255,255,.1); min-height:60px; flex-shrink:0;
+}
+.logo-icon { font-size:18px; flex-shrink:0; }
+.logo-text { font-family:'Syne',sans-serif; font-size:13px; font-weight:800;
+  color:#f97316; flex:1; white-space:nowrap; line-height:1.2; }
+.logo-text small { display:block; font-size:9px; color:rgba(255,255,255,.4); font-family:'DM Sans',sans-serif; font-weight:400; margin-top:1px; }
+.collapse-btn { background:none; border:1px solid rgba(255,255,255,.15); color:rgba(255,255,255,.5);
+  border-radius:4px; width:20px; height:20px; cursor:pointer; font-size:9px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; transition:all .15s; }
+.collapse-btn:hover { border-color:rgba(255,255,255,.4); color:#fff; }
+
+.sidebar-nav { flex:1; padding:8px 0; overflow-y:auto; }
+.nav-item { display:flex; align-items:center; gap:10px; width:100%; padding:10px 14px;
+  background:none; border:none; border-left:3px solid transparent;
+  color:rgba(255,255,255,.55); font-size:13px; font-weight:500;
+  font-family:'DM Sans',sans-serif; cursor:pointer; transition:all .15s; text-align:left; white-space:nowrap; }
+.nav-item:hover { color:rgba(255,255,255,.9); background:rgba(255,255,255,.07); }
+.nav-item.active { color:#fff; border-left-color:#f97316; background:rgba(249,115,22,.15); }
+.nav-icon  { font-size:16px; width:20px; text-align:center; flex-shrink:0; }
+.nav-label { overflow:hidden; font-size:13px; }
+
+.sidebar-footer { padding:12px 14px; border-top:1px solid rgba(255,255,255,.1); flex-shrink:0; }
+.user-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.avatar { width:32px; height:32px; border-radius:50%; flex-shrink:0;
+  background:linear-gradient(135deg,#f97316,#ea580c);
+  display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; color:#fff; }
+.user-info { overflow:hidden; flex:1; min-width:0; }
+.user-name { font-weight:600; font-size:12px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.user-role { font-size:10px; color:rgba(255,255,255,.4); }
+.signout-btn { width:100%; padding:7px; border-radius:6px; font-size:12px; font-weight:700;
+  cursor:pointer; background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.25);
+  font-family:'DM Sans',sans-serif; transition:all .15s; }
+.signout-btn:hover { background:rgba(239,68,68,.25); }
