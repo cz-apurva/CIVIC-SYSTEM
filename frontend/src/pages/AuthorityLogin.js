@@ -1,67 +1,20 @@
 import React, { useState } from 'react';
-import './AuthorityLogin.css';
+import './Auth.css'; // ← same CSS as citizen login
 
-/* ═══════════════════════════════════════════════════════════
-   OFFICIAL GOVERNMENT AUTHORITY CREDENTIALS
-   All India Headquarter — Department-wise Access
-   Password format: DEPT_CODE + @SCIS + YEAR
-═══════════════════════════════════════════════════════════ */
 const AUTHORITY_ACCOUNTS = [
-  {
-    id:       'SCIS-GOI-001',
-    username: 'collector.gzb',
-    password: 'GZB@SCIS2026',
-    name:     'Sh. Rajiv Sharma',
-    dept:     'District Collector Office, Ghaziabad',
-    role:     'District Collector',
-    access:   'full',
-    hq:       'Ghaziabad, Uttar Pradesh',
-    ministry: 'Ministry of Urban Development',
-  },
-  {
-    id:       'SCIS-PWD-002',
-    username: 'pwd.engineer',
-    password: 'PWD@SCIS2026',
-    name:     'Er. Suresh Kumar',
-    dept:     'Public Works Department — National HQ',
-    role:     'Chief Engineer',
-    access:   'roads',
-    hq:       'New Delhi, India',
-    ministry: 'Ministry of Road Transport & Highways',
-  },
-  {
-    id:       'SCIS-SAN-003',
-    username: 'sanitation.hd',
-    password: 'SAN@SCIS2026',
-    name:     'Sh. Dinesh Yadav',
-    dept:     'Sanitation Department — National HQ',
-    role:     'Director, Swachh Bharat Mission',
-    access:   'garbage',
-    hq:       'New Delhi, India',
-    ministry: 'Ministry of Housing & Urban Affairs',
-  },
-  {
-    id:       'SCIS-WAT-004',
-    username: 'water.auth',
-    password: 'WAT@SCIS2026',
-    name:     'Er. Priya Nair',
-    dept:     'Water Authority — National HQ',
-    role:     'Chief Engineer (Water Supply)',
-    access:   'water',
-    hq:       'New Delhi, India',
-    ministry: 'Ministry of Jal Shakti',
-  },
-  {
-    id:       'SCIS-ELB-005',
-    username: 'elect.board',
-    password: 'ELB@SCIS2026',
-    name:     'Er. Amit Jain',
-    dept:     'Electricity Board — National HQ',
-    role:     'Chief Electrical Engineer',
-    access:   'lights',
-    hq:       'New Delhi, India',
-    ministry: 'Ministry of Power',
-  },
+  { id:'SCIS-GOI-001', username:'collector.gzb', password:'Admin@2026', name:'Sh. Rajiv Sharma',  dept:'District Collector Office, Ghaziabad',  role:'District Collector',             access:'full',    ministry:'Nagar Nigam Ghaziabad' },
+  { id:'SCIS-PWD-002', username:'pwd.engineer',  password:'PWD@2026',   name:'Er. Suresh Kumar',  dept:'Public Works Department',                role:'Chief Engineer',                 access:'roads',   ministry:'Public Works' },
+  { id:'SCIS-SAN-003', username:'sanitation.hd', password:'SAN@2026',   name:'Sh. Dinesh Yadav',  dept:'Sanitation Department',                  role:'Director, Sanitation',           access:'garbage', ministry:'Sanitation' },
+  { id:'SCIS-WAT-004', username:'water.auth',    password:'WAT@2026',   name:'Er. Priya Nair',    dept:'Water Authority',                        role:'Chief Engineer (Water)',          access:'water',   ministry:'Jal Nigam' },
+  { id:'SCIS-ELB-005', username:'elect.board',   password:'ELB@2026',   name:'Er. Amit Jain',     dept:'Electricity Board',                      role:'Chief Electrical Engineer',      access:'lights',  ministry:'Electricity Board' },
+];
+
+const DEPT_ACCESS = [
+  { icon:'🏛️', dept:'District Collector', access:'Full access — all departments and complaints' },
+  { icon:'🛣️', dept:'Public Works Dept',  access:'Road damage and pothole issues only' },
+  { icon:'🗑️', dept:'Sanitation Dept',    access:'Garbage and waste management only' },
+  { icon:'💧', dept:'Water Authority',    access:'Water leakage and drainage only' },
+  { icon:'💡', dept:'Electricity Board',  access:'Streetlight and electrical issues only' },
 ];
 
 export default function AuthorityLogin({ onLogin, onBack }) {
@@ -72,193 +25,135 @@ export default function AuthorityLogin({ onLogin, onBack }) {
   const [attempts, setAttempts] = useState(0);
   const [locked,   setLocked]   = useState(false);
 
-  const h = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  const h = e => { setForm(f=>({...f,[e.target.name]:e.target.value})); setError(''); };
 
   const submit = e => {
     e.preventDefault();
-    setError('');
+    if (locked) { setError('Account locked. Contact your system administrator.'); return; }
 
-    if (locked) {
-      setError('Account temporarily locked. Please contact your system administrator.');
-      return;
-    }
-
-    if (!form.username || !form.password) {
-      setError('Employee ID and password are required.');
-      return;
-    }
+    const u = form.username.trim();
+    const p = form.password.trim();
+    if (!u || !p) { setError('Employee ID and password are required.'); return; }
 
     setLoading(true);
-
     setTimeout(() => {
       const acc = AUTHORITY_ACCOUNTS.find(
-        a => a.username === form.username.trim() && a.password === form.password
+        a => a.username.toLowerCase() === u.toLowerCase() && a.password === p
       );
-
       if (acc) {
-        setAttempts(0);
-        onLogin({ ...acc, isAuthority: true, loginTime: new Date().toISOString() });
+        onLogin({ ...acc, isAuthority:true, loginTime:new Date().toISOString() });
       } else {
-        const newAttempts = attempts + 1;
-        setAttempts(newAttempts);
-
-        if (newAttempts >= 5) {
-          setLocked(true);
-          setError('Too many failed attempts. Account locked. Contact: helpdesk@scis.gov.in');
-        } else {
-          setError(`Invalid credentials. ${5 - newAttempts} attempt(s) remaining before lockout.`);
-        }
+        const n = attempts + 1;
+        setAttempts(n);
+        if (n >= 5) { setLocked(true); setError('Too many attempts. Account locked. Contact your administrator.'); }
+        else setError(`Invalid credentials. ${5-n} attempt(s) remaining before lockout.`);
       }
       setLoading(false);
-    }, 900);
+    }, 700);
   };
 
   return (
-    <div className="al-page">
-      <div className="al-bg" />
+    <div className="auth-page">
+      <div className="auth-blob1"/><div className="auth-blob2"/>
+      <div className="auth-card" style={{maxWidth:500}}>
+        <div className="auth-card-bar"/>
+        <div className="auth-card-inner">
+          <button className="auth-back" onClick={onBack}>← Back to Portal</button>
 
-      <div className="al-card">
-
-        {/* Back button */}
-        <button className="al-back" onClick={onBack}>← Back to Portal</button>
-
-        {/* Official Header */}
-        <div className="al-gov-header">
-          <div className="al-flag">🇮🇳</div>
-          <div className="al-gov-text">
-            <div className="al-gov-hindi">भारत सरकार — स्मार्ट नागरिक अवसंरचना प्रणाली</div>
-            <div className="al-gov-eng">GOVERNMENT OF INDIA — SCIS AUTHORITY PORTAL</div>
-            <div className="al-gov-sub">National Informatics Centre (NIC) · Ministry of Urban Development</div>
-          </div>
-          <div className="al-emblem">🏛️</div>
-        </div>
-
-        <div className="al-orange-bar" />
-
-        {/* Security Notice */}
-        <div className="al-security-notice">
-          <div className="al-sn-icon">🔒</div>
-          <div className="al-sn-text">
-            <strong>RESTRICTED ACCESS — AUTHORISED PERSONNEL ONLY</strong><br/>
-            This portal is restricted to designated government officials.
-            Unauthorised access is a punishable offence under Section 43 &amp; 66 of the IT Act, 2000.
-            All login activity is logged and monitored.
-          </div>
-        </div>
-
-        <h2 className="al-title">Authority Login</h2>
-        <p className="al-desc">
-          Enter your official Employee ID and department credentials issued by NIC.
-          Contact your System Administrator if you do not have access.
-        </p>
-
-        <form onSubmit={submit} autoComplete="off">
-
-          <div className="al-field">
-            <label>Employee ID / Username</label>
-            <div className="al-input-wrap">
-              <span className="al-input-icon">👤</span>
-              <input
-                name="username"
-                placeholder="Enter your official Employee ID"
-                value={form.username}
-                onChange={h}
-                autoComplete="off"
-                disabled={locked}
-              />
+          {/* Header — same style as citizen login */}
+          <div className="auth-header">
+            <div className="auth-logo">
+              <div className="auth-logo-icon">🏛️</div>
+              <div>
+                <div className="auth-logo-text">
+                  <span>SCIS &nbsp;</span><span>Authority Portal</span>
+                </div>
+                <div className="auth-logo-sub">Nagar Nigam Ghaziabad · Official Access Only</div>
+              </div>
             </div>
+            <h1 className="auth-title">Authority Login</h1>
+            <p className="auth-sub">Enter your Employee ID and department credentials</p>
           </div>
 
-          <div className="al-field">
-            <label>Department Password</label>
-            <div className="al-input-wrap">
-              <span className="al-input-icon">🔑</span>
-              <input
-                type={showPass ? 'text' : 'password'}
-                name="password"
-                placeholder="Enter your department password"
-                value={form.password}
-                onChange={h}
-                autoComplete="new-password"
-                disabled={locked}
-              />
-              <button
-                type="button"
-                className="al-toggle-pass"
-                onClick={() => setShowPass(v => !v)}
-              >
-                {showPass ? '🙈' : '👁️'}
-              </button>
-            </div>
+          {/* Security notice — compact, not alarming */}
+          <div className="auth-info-box" style={{background:'#fef3c7',borderColor:'#fde68a',color:'#92400e',marginBottom:16}}>
+            <span>🔒</span>
+            <span><strong>Restricted access.</strong> For authorised SCIS personnel only. All logins are recorded.</span>
           </div>
 
           {error && (
-            <div className={`al-error ${locked ? 'al-error-locked' : ''}`}>
-              {locked ? '🔒' : '⚠️'} {error}
+            <div className="auth-error">
+              <span>⚠️</span> {error}
             </div>
           )}
 
           {attempts > 0 && !locked && (
-            <div className="al-attempts-bar">
-              <div className="al-attempts-fill" style={{ width: `${(attempts/5)*100}%` }} />
+            <div style={{marginBottom:10}}>
+              <div style={{height:3,background:'#f1f5f9',borderRadius:2,overflow:'hidden'}}>
+                <div style={{height:'100%',width:`${(attempts/5)*100}%`,background:'#ef4444',borderRadius:2,transition:'width .3s'}}/>
+              </div>
+              <div style={{fontSize:10,color:'#94a3b8',marginTop:3}}>Failed attempts: {attempts}/5</div>
             </div>
           )}
 
-          <button className="al-submit" type="submit" disabled={loading || locked}>
-            {loading ? (
-              <span>🔄 Verifying credentials...</span>
-            ) : locked ? (
-              <span>🔒 Account Locked</span>
-            ) : (
-              <span>🔐 Login to Authority Portal</span>
-            )}
-          </button>
+          <form onSubmit={submit}>
+            <div className="auth-form-group">
+              <label className="auth-label">Employee ID / Username</label>
+              <div className={`auth-input-wrap ${error?'error':''}`}>
+                <span className="auth-input-icon">👤</span>
+                <input name="username" placeholder="Enter your Employee ID"
+                  value={form.username} onChange={h} disabled={locked} autoComplete="off" spellCheck="false"/>
+              </div>
+            </div>
 
-        </form>
+            <div className="auth-form-group">
+              <label className="auth-label">Department Password</label>
+              <div className={`auth-input-wrap ${error?'error':''}`}>
+                <span className="auth-input-icon">🔑</span>
+                <input type={showPass?'text':'password'} name="password"
+                  placeholder="Enter your department password"
+                  value={form.password} onChange={h} disabled={locked} autoComplete="new-password"/>
+                <button type="button" className="auth-eye" onClick={()=>setShowPass(v=>!v)}>
+                  {showPass?'🙈':'👁️'}
+                </button>
+              </div>
+              <div style={{fontSize:10,color:'#94a3b8',marginTop:4}}>Password is case-sensitive. Check Caps Lock.</div>
+            </div>
 
-        {/* Department Access Info */}
-        <div className="al-dept-info">
-          <div className="al-di-title">Department Access Levels</div>
-          <div className="al-di-grid">
-            {[
-              { icon:'🏛️', dept:'District Collector', access:'Full Access — All departments & complaints' },
-              { icon:'🛣️', dept:'Public Works Dept',  access:'Roads, Potholes, Footpath issues only' },
-              { icon:'🗑️', dept:'Sanitation Dept',    access:'Garbage & waste management only' },
-              { icon:'💧', dept:'Water Authority',    access:'Water leakage & drainage only' },
-              { icon:'💡', dept:'Electricity Board',  access:'Streetlights & electrical only' },
-            ].map((d, i) => (
-              <div key={i} className="al-di-row">
-                <span className="al-di-icon">{d.icon}</span>
+            <button className="auth-submit" type="submit" disabled={loading||locked}>
+              {loading ? '⏳ Verifying...' : locked ? '🔒 Account Locked' : '🔐 Login to Authority Portal'}
+            </button>
+          </form>
+
+          {/* Department access levels — info only, no credentials */}
+          <div style={{marginTop:20,background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:10,padding:'14px 16px'}}>
+            <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:.6,marginBottom:10}}>
+              Department Access Levels
+            </div>
+            {DEPT_ACCESS.map((d,i) => (
+              <div key={i} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'7px 0',borderBottom:i<DEPT_ACCESS.length-1?'1px solid #f1f5f9':'none'}}>
+                <span style={{fontSize:18,flexShrink:0}}>{d.icon}</span>
                 <div>
-                  <div className="al-di-dept">{d.dept}</div>
-                  <div className="al-di-access">{d.access}</div>
+                  <div style={{fontWeight:700,fontSize:12,color:'#1e293b'}}>{d.dept}</div>
+                  <div style={{fontSize:11,color:'#64748b',marginTop:1}}>{d.access}</div>
                 </div>
               </div>
             ))}
           </div>
-        </div>
 
-        {/* Help */}
-        <div className="al-help">
-          <div className="al-help-row">
-            <span>🆘 Forgot Password?</span>
-            <a href="mailto:helpdesk@scis.gov.in" className="al-help-link">helpdesk@scis.gov.in</a>
-          </div>
-          <div className="al-help-row">
-            <span>📞 NIC Helpdesk</span>
-            <span className="al-help-link">1800-111-555 (Toll Free)</span>
-          </div>
-          <div className="al-help-row">
-            <span>🌐 Portal Version</span>
-            <span style={{ color:'#94a3b8', fontSize:11 }}>SCIS v2.0 — NIC 2026</span>
+          {/* Help */}
+          <div style={{marginTop:14,background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:8,overflow:'hidden'}}>
+            {[
+              ['🆘 Forgot credentials?', 'Contact your system admin'],
+              ['📞 Helpdesk', '0120-2820000'],
+            ].map(([l,v],i) => (
+              <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'9px 14px',fontSize:12,color:'#475569',borderBottom:i===0?'1px solid #f1f5f9':'none'}}>
+                <span>{l}</span><span style={{color:'#f97316',fontWeight:600}}>{v}</span>
+              </div>
+            ))}
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="al-footer">
-          🔒 256-bit SSL Encrypted &nbsp;·&nbsp; ISO 27001 Certified &nbsp;·&nbsp; GIGW Compliant &nbsp;·&nbsp; NIC Hosted
-        </div>
-
+        <div className="auth-footer">🔒 SCIS v2.0 · Nagar Nigam Ghaziabad · Confidential Access</div>
       </div>
     </div>
   );

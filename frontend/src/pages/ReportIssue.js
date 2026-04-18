@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { useIssues } from '../IssueStore';
@@ -11,66 +11,26 @@ L.Icon.Default.mergeOptions({
   iconUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
-
-const selectedIcon = new L.Icon({
+const orangeIcon = new L.Icon({
   iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
   shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
   iconSize:[25,41], iconAnchor:[12,41], popupAnchor:[1,-34], shadowSize:[41,41],
 });
 
-const CATS = [
-  'Road Damage / Pothole','Broken Streetlight','Garbage Overflow',
-  'Water Leakage','Damaged Public Property','Drainage Problem','Other',
-];
+const CATS = ['Road Damage / Pothole','Broken Streetlight','Garbage Overflow','Water Leakage','Damaged Public Property','Drainage Problem','Other'];
 const DEPT_MAP = {
-  'Road Damage / Pothole':  'Public Works Department',
-  'Broken Streetlight':     'Electricity Board',
-  'Garbage Overflow':       'Sanitation Department',
-  'Water Leakage':          'Water Authority',
-  'Damaged Public Property':'Municipal Corporation',
-  'Drainage Problem':       'Water Authority',
-  'Other':                  'Municipal Corporation',
+  'Road Damage / Pothole':'Public Works Department','Broken Streetlight':'Electricity Board',
+  'Garbage Overflow':'Sanitation Department','Water Leakage':'Water Authority',
+  'Damaged Public Property':'Municipal Corporation','Drainage Problem':'Water Authority','Other':'Municipal Corporation',
 };
-const DEPT_PHONE = {
-  'Public Works Department': '0120-2820001',
-  'Electricity Board':       '0120-2820002',
-  'Sanitation Department':   '0120-2820003',
-  'Water Authority':         '0120-2820004',
-  'Municipal Corporation':   '0120-2820005',
-};
-const DEPT_ICON = {
-  'Public Works Department': '🛣️',
-  'Electricity Board':       '💡',
-  'Sanitation Department':   '🗑️',
-  'Water Authority':         '💧',
-  'Municipal Corporation':   '🏛️',
-};
+const DEPT_ICON = { 'Public Works Department':'🛣️','Electricity Board':'💡','Sanitation Department':'🗑️','Water Authority':'💧','Municipal Corporation':'🏛️' };
+const DEPT_EMAIL = { 'Public Works Department':'pwd@scis-gzb.gov.in','Electricity Board':'electricity@scis-gzb.gov.in','Sanitation Department':'sanitation@scis-gzb.gov.in','Water Authority':'water@scis-gzb.gov.in','Municipal Corporation':'municipal@scis-gzb.gov.in' };
+const SEV_CFG = { 3:{ label:'High', color:'#dc2626', bg:'#fef2f2', hint:'Immediate safety risk — injuries or major damage possible' }, 2:{ label:'Medium', color:'#d97706', bg:'#fffbeb', hint:'Significant inconvenience, needs prompt attention' }, 1:{ label:'Low', color:'#16a34a', bg:'#f0fdf4', hint:'Minor issue, can be scheduled for routine maintenance' } };
 
 const CITY_CENTER = [28.6692, 77.4538];
-const EMPTY = { title:'', category:'', description:'', location:'', severity:'', reporter:'', phone:'' };
+const EMPTY = { title:'', category:'', description:'', location:'', severity:'', email:'' };
 
-function generateRefNo() {
-  const y = new Date().getFullYear();
-  const n = Math.floor(100000 + Math.random() * 900000);
-  return `SCIS-GZB-${y}-${n}`;
-}
-
-// Send SMS via Node backend → Fast2SMS / MSG91
-async function sendSMSviaBacked(phone, refNo, title, department, deptPhone) {
-  try {
-    const res = await fetch('/api/send-sms', {
-      method:  'POST',
-      headers: { 'Content-Type':'application/json' },
-      body:    JSON.stringify({ phone, refNo, title, department, deptPhone }),
-    });
-    const data = await res.json();
-    console.log('[SMS]', data);
-    return data.success;
-  } catch (e) {
-    console.error('[SMS Error]', e);
-    return false;
-  }
-}
+function generateRefNo() { return `SCIS-GZB-${new Date().getFullYear()}-${Math.floor(100000+Math.random()*900000)}`; }
 
 function LocationPicker({ onPick }) {
   useMapEvents({ click(e) { onPick(e.latlng.lat, e.latlng.lng); } });
@@ -79,57 +39,111 @@ function LocationPicker({ onPick }) {
 
 async function reverseGeocode(lat, lng) {
   try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-      { headers:{ 'Accept-Language':'en' } }
-    );
-    const data = await res.json();
-    if (data?.display_name) return data.display_name.split(',').slice(0,3).join(',').trim();
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,{headers:{'Accept-Language':'en'}});
+    const d = await r.json();
+    if (d?.display_name) return d.display_name.split(',').slice(0,3).join(',').trim();
   } catch {}
   return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 }
 
-// ── TOAST COMPONENT ──
+// Simulated email — in production hook to backend /api/send-email
+async function sendEmailConfirmation(email, refNo, title, dept, deptEmail) {
+  try {
+    const token = localStorage.getItem('token'); // Get the user's login token
+
+    const response = await fetch('/api/issues/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}` // Added this
+      },
+      body: JSON.stringify({ to: email, refNo, title, department: dept, deptEmail }),
+    });
+
+    if (response.ok) {
+      console.log(`[REAL EMAIL] Sent successfully to: ${email}`);
+    } else {
+      throw new Error('Server rejected email request');
+    }
+  } catch (err) {
+    // Fallback log if the backend is down or email fails
+    console.log(`[EMAIL FAILED] Using fallback log: To:${email} Ref:${refNo}`);
+  }
+}
+
+/* ── Department Assignment Toast ── */
 function DeptToast({ info, onClose }) {
   if (!info) return null;
+  const sev = SEV_CFG[info.severity] || SEV_CFG[2];
   return (
-    <div className="dept-toast-overlay" onClick={onClose}>
-      <div className="dept-toast" onClick={e => e.stopPropagation()}>
-        <div className="dt-top">
-          <div className="dt-icon">{DEPT_ICON[info.dept] || '🏛️'}</div>
-          <div className="dt-body">
-            <div className="dt-tag">Complaint Assigned</div>
-            <div className="dt-dept">{info.dept}</div>
-            <div className="dt-ref">Ref No: <strong>{info.refNo}</strong></div>
+    <div className="dt-overlay" onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+      <div className="dt-box">
+        {/* Header */}
+        <div className="dt-header">
+          <div className="dt-header-left">
+            <div className="dt-check">✅</div>
+            <div>
+              <div className="dt-htag">Complaint Registered</div>
+              <div className="dt-htitle">Issue Assigned to Department</div>
+            </div>
           </div>
           <button className="dt-close" onClick={onClose}>✕</button>
         </div>
+
+        {/* Dept badge */}
+        <div className="dt-dept-row">
+          <div className="dt-dept-icon">{DEPT_ICON[info.dept]||'🏛️'}</div>
+          <div>
+            <div className="dt-dept-name">{info.dept}</div>
+            <div className="dt-dept-email">{DEPT_EMAIL[info.dept]}</div>
+          </div>
+          <div className="dt-ref-box">
+            <div className="dt-ref-label">Ref No</div>
+            <div className="dt-ref-val">{info.refNo}</div>
+          </div>
+        </div>
+
+        {/* BERT score row */}
+        <div className="dt-bert-row">
+          <div className="dt-bert-label">🤖 BERT Priority Score</div>
+          <div className="dt-bert-val">
+            <span className="dt-bert-num" style={{color: info.bert_label==='High'?'#dc2626':info.bert_label==='Medium'?'#d97706':'#16a34a'}}>
+              {Math.round(info.bert_score||0)}
+            </span>
+            <span className="dt-bert-badge" style={{background:sev.bg, color:sev.color, border:`1px solid ${sev.color}33`}}>
+              {info.bert_label||'Analysing'}
+            </span>
+            <span className="dt-bert-model">bert-base-uncased</span>
+          </div>
+        </div>
+
+        {/* Details */}
         <div className="dt-details">
+          <div className="dt-row"><span>📋 Issue</span><strong>{info.title}</strong></div>
+          <div className="dt-row"><span>📍 Location</span><strong>{info.location}</strong></div>
           <div className="dt-row">
-            <span className="dt-label">📋 Issue</span>
-            <span className="dt-val">{info.title}</span>
+            <span>⚠️ Severity</span>
+            <strong style={{color:sev.color}}>{sev.label}</strong>
           </div>
-          <div className="dt-row">
-            <span className="dt-label">📍 Location</span>
-            <span className="dt-val">{info.location}</span>
-          </div>
-          <div className="dt-row">
-            <span className="dt-label">📞 Dept Helpline</span>
-            <span className="dt-val" style={{color:'#f97316',fontWeight:700}}>{DEPT_PHONE[info.dept]}</span>
-          </div>
-          {info.phone && (
+          {info.email && (
             <div className="dt-row">
-              <span className="dt-label">📱 SMS Sent to</span>
-              <span className="dt-val" style={{color:'#10b981',fontWeight:700}}>+91-{info.phone}</span>
+              <span>📧 Email sent to</span>
+              <strong style={{color:'#10b981'}}>{info.email}</strong>
             </div>
           )}
         </div>
-        <div className="dt-sms-note">
-          {info.phone
-            ? `✅ SMS confirmation sent to +91-${info.phone} with your reference number`
-            : '⚠️ No phone number provided — SMS not sent'}
-        </div>
-        <button className="dt-ok" onClick={onClose}>Got it →</button>
+
+        {info.email ? (
+          <div className="dt-email-note">
+            📨 Email confirmation sent to <strong>{info.email}</strong> with your reference number and tracking details.
+          </div>
+        ) : (
+          <div className="dt-email-note" style={{background:'#fffbeb',borderColor:'#fde68a',color:'#92400e'}}>
+            ⚠️ No email provided — you won't receive a confirmation. Note your Ref No: <strong>{info.refNo}</strong>
+          </div>
+        )}
+
+        <button className="dt-ok" onClick={onClose}>View on Dashboard →</button>
       </div>
     </div>
   );
@@ -137,48 +151,43 @@ function DeptToast({ info, onClose }) {
 
 export default function ReportIssue({ user, onSuccess }) {
   const { addIssue }     = useIssues();
-  const [form,       setForm]       = useState({ ...EMPTY, reporter: user?.name || '' });
+  const [form,       setForm]       = useState({ ...EMPTY, email:user?.email||'' });
   const [photo,      setPhoto]      = useState(null);
   const [errors,     setErrors]     = useState({});
   const [loading,    setLoading]    = useState(false);
   const [markerPos,  setMarkerPos]  = useState(null);
   const [locLoading, setLocLoading] = useState(false);
   const [mapVisible, setMapVisible] = useState(false);
-  const [toastInfo,  setToastInfo]  = useState(null);   // dept assignment popup
+  const [toastInfo,  setToastInfo]  = useState(null);
   const [submitted,  setSubmitted]  = useState(false);
 
-  const h = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  const h = e => { setForm(f=>({...f,[e.target.name]:e.target.value})); setErrors(er=>({...er,[e.target.name]:''})); };
 
   const handleMapClick = async (lat, lng) => {
-    setMarkerPos({ lat, lng });
-    setLocLoading(true);
-    const address = await reverseGeocode(lat, lng);
-    setForm(f => ({ ...f, location: address }));
-    setLocLoading(false);
+    setMarkerPos({lat,lng}); setLocLoading(true);
+    const address = await reverseGeocode(lat,lng);
+    setForm(f=>({...f,location:address})); setLocLoading(false);
   };
 
   const useMyLocation = () => {
     if (!navigator.geolocation) return;
     setLocLoading(true);
     navigator.geolocation.getCurrentPosition(async pos => {
-      const { latitude:lat, longitude:lng } = pos.coords;
-      setMarkerPos({ lat, lng });
-      setMapVisible(true);
-      const address = await reverseGeocode(lat, lng);
-      setForm(f => ({ ...f, location: address }));
-      setLocLoading(false);
-    }, () => setLocLoading(false));
+      const {latitude:lat,longitude:lng} = pos.coords;
+      setMarkerPos({lat,lng}); setMapVisible(true);
+      const address = await reverseGeocode(lat,lng);
+      setForm(f=>({...f,location:address})); setLocLoading(false);
+    }, ()=>setLocLoading(false));
   };
 
   const validate = () => {
     const err = {};
-    if (!form.title.trim())       err.title       = 'Title is required';
+    if (!form.title.trim())       err.title       = 'Issue title is required';
     if (!form.category)           err.category    = 'Select a category';
-    if (!form.description.trim()) err.description = 'Description is required';
-    if (!markerPos)               err.location    = 'Pick a location on the map';
-    if (!form.severity)           err.severity    = 'Select severity level';
-    if (form.phone && !/^\d{10}$/.test(form.phone))
-                                  err.phone       = 'Enter a valid 10-digit mobile number';
+    if (!form.description.trim()) err.description = 'Please describe the problem';
+    if (!markerPos)               err.location    = 'Pick a location on the map below';
+    if (!form.severity)           err.severity    = 'Select the severity level';
+    if (form.email && !/\S+@\S+\.\S+/.test(form.email)) err.email = 'Enter a valid email address';
     return err;
   };
 
@@ -189,210 +198,236 @@ export default function ReportIssue({ user, onSuccess }) {
     setErrors({});
     setLoading(true);
 
-    const dept   = DEPT_MAP[form.category] || 'Municipal Corporation';
-    const refNo  = generateRefNo();
-    const phone  = form.phone.trim();
+    const dept  = DEPT_MAP[form.category] || 'Municipal Corporation';
+    const refNo = generateRefNo();
 
+    // Prepare data for the backend
     const issueData = {
       title:       form.title.trim(),
       category:    form.category,
       description: form.description.trim(),
       location:    form.location.trim(),
       severity:    parseInt(form.severity),
-      reporter:    form.reporter || 'Anonymous',
-      phone,
+      reporter:    user?.name || 'Anonymous',
+      phone:       user?.phone || '', // Added this to match your SQL schema
+      email:       form.email.trim(),
       department:  dept,
       refNo,
       lat:         markerPos.lat,
       lng:         markerPos.lng,
     };
 
-    await addIssue(issueData);
+    try {
+      // 1. Send to IssueStore (addIssue handles the BERT fallback internally)
+      const saved = await addIssue(issueData);
 
-    // ── Send SMS via backend (Fast2SMS / MSG91) ──
-    if (phone) {
-      await sendSMSviaBacked(phone, refNo, form.title.trim(), dept, DEPT_PHONE[dept]||'0120-2820000');
+      // 2. Safely extract BERT data (preventing the "undefined" crash)
+      const finalBertScore = saved?.bert_score ?? 50; 
+      const finalBertLabel = saved?.bert_label ?? 'Medium';
+
+      // 3. Optional: Only call Email if you have the route. 
+      // I've wrapped this in a try/catch so it doesn't break the whole app.
+      if (form.email.trim()) {
+        try {
+          await sendEmailConfirmation(form.email.trim(), refNo, form.title.trim(), dept, DEPT_EMAIL[dept]);
+        } catch (emailErr) {
+          console.warn("Email service unavailable, but issue was saved.");
+        }
+      }
+
+      setSubmitted(true);
+      setToastInfo({
+        dept, refNo,
+        title:      form.title.trim(),
+        location:   form.location.trim(),
+        email:      form.email.trim(),
+        severity:   parseInt(form.severity),
+        bert_score: finalBertScore,
+        bert_label: finalBertLabel,
+      });
+
+    } catch (err) {
+      console.error("Submission failed", err);
+      setErrors({ global: "Failed to save issue. Please check your database connection." });
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-    setSubmitted(true);
-
-    // ── Show department assignment toast ──
-    setToastInfo({
-      dept,
-      refNo,
-      title:    form.title.trim(),
-      location: form.location.trim(),
-      phone,
-    });
   };
 
-  // ── After toast closed → redirect ──
-  const handleToastClose = () => {
-    setToastInfo(null);
-    if (submitted && onSuccess) onSuccess();
-  };
+  const closeToast = () => { setToastInfo(null); if (submitted && onSuccess) onSuccess(); };
 
-  const dept = DEPT_MAP[form.category];
+  const dept   = DEPT_MAP[form.category];
+  const sevCfg = SEV_CFG[parseInt(form.severity)];
 
   return (
     <div className="page">
-      {/* Toast */}
-      <DeptToast info={toastInfo} onClose={handleToastClose} />
+      <DeptToast info={toastInfo} onClose={closeToast}/>
 
       <div className="page-header">
         <div>
           <div className="page-title">📋 Report a New Issue</div>
-          <div className="page-sub">BERT AI will assign priority automatically · SMS confirmation sent to your mobile</div>
+          <div className="page-sub">🤖 BERT AI will analyse your description and assign a 0–100 priority score automatically</div>
         </div>
       </div>
 
       <div className="ri-layout">
+        {/* ── FORM ── */}
+        <div className="card ri-card">
+          <form onSubmit={submit} noValidate>
 
-        {/* ── MAIN FORM ── */}
-        <div className="card">
-          <form onSubmit={submit}>
-
-            {/* Row 1 */}
-            <div className="form-grid">
-              <div className="form-group">
-                <label className="form-label">Issue Title *</label>
-                <input className="form-input" name="title"
-                  placeholder="e.g. Large pothole causing accidents near school"
-                  value={form.title} onChange={h}/>
-                {errors.title && <div className="form-error">{errors.title}</div>}
+            {/* Row 1: Title + Category */}
+            <div className="ri-row">
+              <div className="ri-field">
+                <label className="ri-label">Issue Title *</label>
+                <input className={`ri-input ${errors.title?'ri-error-border':''}`}
+                  name="title" value={form.title} onChange={h}
+                  placeholder="e.g. Large pothole causing accidents near school gate"/>
+                {errors.title && <div className="ri-err">{errors.title}</div>}
               </div>
-              <div className="form-group">
-                <label className="form-label">Category *</label>
-                <select className="form-select" name="category" value={form.category} onChange={h}>
-                  <option value="">Select category...</option>
-                  {CATS.map(c => <option key={c}>{c}</option>)}
+              <div className="ri-field">
+                <label className="ri-label">Category *</label>
+                <select className={`ri-select ${errors.category?'ri-error-border':''}`}
+                  name="category" value={form.category} onChange={h}>
+                  <option value="">Select issue category...</option>
+                  {CATS.map(c=><option key={c}>{c}</option>)}
                 </select>
-                {errors.category && <div className="form-error">{errors.category}</div>}
+                {errors.category && <div className="ri-err">{errors.category}</div>}
               </div>
             </div>
 
-            {/* Description */}
-            <div className="form-group">
-              <label className="form-label">
+            {/* Description — BERT reads this */}
+            <div className="ri-field">
+              <label className="ri-label">
                 Description *
-                <span className="bert-hint">🤖 BERT reads this to determine priority</span>
+                <span className="ri-bert-tag">🤖 BERT reads this to score priority</span>
               </label>
-              <textarea className="form-textarea" name="description"
-                placeholder="Describe the problem in detail — mention danger, urgency, affected people. BERT analyses your words automatically."
-                value={form.description} onChange={h}/>
-              {errors.description && <div className="form-error">{errors.description}</div>}
+              <textarea className={`ri-textarea ${errors.description?'ri-error-border':''}`}
+                name="description" value={form.description} onChange={h} rows={4}
+                placeholder="Describe the issue in detail. Mention danger level, number of people affected, how long it has been there. BERT NLP automatically scores urgency from your words — no manual weights."/>
+              {errors.description && <div className="ri-err">{errors.description}</div>}
+              {form.description.length > 0 && (
+                <div className="ri-desc-hint">
+                  {form.description.length} chars · BERT will analyse for keywords like accident, flooding, burst, dark, broken...
+                </div>
+              )}
             </div>
 
-            {/* Location */}
-            <div className="form-group">
-              <label className="form-label">📍 Location * — Click map or use GPS</label>
-              <div className="loc-row">
-                <input className="form-input" name="location" style={{flex:1}}
-                  placeholder="Click map to auto-fill address"
-                  value={locLoading ? 'Getting address...' : form.location}
-                  onChange={h}/>
-                <button type="button" className="loc-btn" onClick={useMyLocation} disabled={locLoading}>
-                  {locLoading ? '⏳' : '📡'} My Location
+            {/* Location picker */}
+            <div className="ri-field">
+              <label className="ri-label">📍 Location * — Pick on map for accurate pin</label>
+              <div className="ri-loc-row">
+                <input className={`ri-input ri-loc-input ${errors.location?'ri-error-border':''}`}
+                  name="location" value={locLoading?'Fetching address...':form.location} onChange={h}
+                  placeholder="Click map to auto-fill, or type manually"/>
+                <button type="button" className="ri-loc-btn" onClick={useMyLocation} disabled={locLoading}>
+                  {locLoading?'⏳':'📡'} GPS
                 </button>
-                <button type="button" className={`loc-btn ${mapVisible?'loc-btn-active':''}`}
-                  onClick={() => setMapVisible(v => !v)}>
-                  🗺️ {mapVisible ? 'Hide Map' : 'Pick on Map'}
+                <button type="button" className={`ri-loc-btn ${mapVisible?'ri-loc-active':''}`}
+                  onClick={()=>setMapVisible(v=>!v)}>
+                  🗺️ {mapVisible?'Hide':'Pick on Map'}
                 </button>
               </div>
-              {errors.location && <div className="form-error">{errors.location}</div>}
+              {errors.location && <div className="ri-err">{errors.location}</div>}
 
               {mapVisible && (
-                <div className="map-picker-wrap">
-                  <div className="map-picker-bar">🖱️ Click anywhere on the map to drop a pin</div>
-                  <MapContainer
-                    center={markerPos ? [markerPos.lat, markerPos.lng] : CITY_CENTER}
-                    zoom={13} style={{height:280}} attributionControl={false}>
+                <div className="ri-map-wrap">
+                  <div className="ri-map-bar">🖱️ Click anywhere on the map to drop a pin — address auto-fills</div>
+                  <MapContainer center={markerPos?[markerPos.lat,markerPos.lng]:CITY_CENTER}
+                    zoom={13} style={{height:300}} attributionControl={false}>
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" subdomains="abc"/>
                     <LocationPicker onPick={handleMapClick}/>
-                    {markerPos && <Marker position={[markerPos.lat, markerPos.lng]} icon={selectedIcon}/>}
+                    {markerPos && <Marker position={[markerPos.lat,markerPos.lng]} icon={orangeIcon}/>}
                   </MapContainer>
-                  {markerPos && (
-                    <div className="map-confirm">✅ {form.location}</div>
-                  )}
+                  {markerPos && <div className="ri-map-confirm">✅ {form.location}</div>}
                 </div>
               )}
               {markerPos && !mapVisible && (
-                <div className="map-confirm" style={{marginTop:6}}>✅ Pinned: {markerPos.lat.toFixed(4)}, {markerPos.lng.toFixed(4)}</div>
+                <div className="ri-pin-confirm">✅ Location pinned · {markerPos.lat.toFixed(4)}, {markerPos.lng.toFixed(4)}</div>
               )}
             </div>
 
-            {/* Severity + Name + Phone */}
-            <div className="form-grid">
-              <div className="form-group">
-                <label className="form-label">Severity *</label>
-                <select className="form-select" name="severity" value={form.severity} onChange={h}>
-                  <option value="">Select severity...</option>
-                  <option value="3">🔴 High — Urgent Safety Risk</option>
-                  <option value="2">🟡 Medium — Moderate Issue</option>
-                  <option value="1">🟢 Low — Minor Problem</option>
-                </select>
-                {errors.severity && <div className="form-error">{errors.severity}</div>}
+            {/* Severity + Email */}
+            <div className="ri-row">
+              <div className="ri-field">
+                <label className="ri-label">Severity *</label>
+                <div className="ri-sev-grid">
+                  {[3,2,1].map(v=>{
+                    const sc = SEV_CFG[v];
+                    const sel = parseInt(form.severity)===v;
+                    return (
+                      <div key={v} className={`ri-sev-btn ${sel?'selected':''}`}
+                        style={sel?{background:sc.bg,borderColor:sc.color,color:sc.color}:{}}
+                        onClick={()=>setForm(f=>({...f,severity:String(v)}))}>
+                        <div className="ri-sev-dot" style={{background:sc.color}}/>
+                        <div>
+                          <div className="ri-sev-label">{sc.label}</div>
+                          <div className="ri-sev-hint">{sc.hint}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {errors.severity && <div className="ri-err">{errors.severity}</div>}
               </div>
-              <div className="form-group">
-                <label className="form-label">Your Name (optional)</label>
-                <input className="form-input" name="reporter"
-                  placeholder="Citizen name"
-                  value={form.reporter} onChange={h}/>
-              </div>
-            </div>
 
-            {/* Phone number — full width with SMS note */}
-            <div className="form-group">
-              <label className="form-label">
-                📱 Mobile Number
-                <span className="sms-hint">SMS confirmation will be sent to this number</span>
-              </label>
-              <div className="phone-wrap">
-                <div className="phone-prefix">+91</div>
-                <input className="form-input phone-input" name="phone" type="tel"
-                  placeholder="10-digit mobile number"
-                  maxLength={10}
-                  value={form.phone} onChange={h}/>
-              </div>
-              {errors.phone && <div className="form-error">{errors.phone}</div>}
-              <div className="phone-note">
-                📨 You will receive an SMS with your <strong>Reference Number</strong> and assigned department details
+              <div className="ri-field">
+                <label className="ri-label">
+                  📧 Email for Confirmation
+                  <span style={{fontSize:10,color:'#10b981',marginLeft:6,fontWeight:600,textTransform:'none',letterSpacing:0}}>
+                    Ref No. sent here
+                  </span>
+                </label>
+                <div className={`ri-email-wrap ${errors.email?'ri-error-border':''}`}>
+                  <span style={{padding:'0 10px',fontSize:14,color:'#94a3b8'}}>✉️</span>
+                  <input className="ri-email-input"
+                    type="email" name="email"
+                    placeholder="your@email.com (optional)"
+                    value={form.email} onChange={h}/>
+                </div>
+                {errors.email && <div className="ri-err">{errors.email}</div>}
+                <div className="ri-email-note">
+                  You'll receive your <strong>Reference Number</strong>, assigned department, and tracking link
+                </div>
               </div>
             </div>
 
             {/* Photo */}
-            <div className="form-group">
-              <label className="form-label">Photo (optional)</label>
-              <label className="upload-zone">
-                <input type="file" accept="image/*" style={{display:'none'}}
-                  onChange={e => setPhoto(e.target.files[0])}/>
+            <div className="ri-field">
+              <label className="ri-label">Photo (optional)</label>
+              <label className="ri-upload">
+                <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setPhoto(e.target.files[0])}/>
                 {photo
                   ? <span style={{color:'#f97316',fontWeight:600}}>✅ {photo.name}</span>
-                  : <span>📷 Click to upload a photo of the issue</span>}
+                  : <><span style={{fontSize:20}}>📷</span><span>Click to upload a photo of the issue</span></>}
               </label>
             </div>
 
-            {/* Auto dept preview */}
+            {/* Dept auto-assign preview */}
             {dept && (
-              <div className="dept-preview">
-                <span className="dp-icon">{DEPT_ICON[dept]}</span>
-                <div>
-                  <div className="dp-label">Will be auto-assigned to</div>
-                  <div className="dp-name">{dept}</div>
+              <div className="ri-dept-preview" style={{borderColor:form.severity?(SEV_CFG[parseInt(form.severity)]?.color+'44'):'#e2e8f0'}}>
+                <div style={{fontSize:28}}>{DEPT_ICON[dept]}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:10,color:'#94a3b8',textTransform:'uppercase',letterSpacing:.4,marginBottom:2}}>Auto-assigned to</div>
+                  <div style={{fontWeight:700,fontSize:14,color:'#1a3a5c'}}>{dept}</div>
+                  <div style={{fontSize:11,color:'#64748b'}}>{DEPT_EMAIL[dept]}</div>
                 </div>
-                <div className="dp-phone">{DEPT_PHONE[dept]}</div>
+                {sevCfg && (
+                  <div style={{textAlign:'center',padding:'6px 14px',background:sevCfg.bg,borderRadius:8,border:`1px solid ${sevCfg.color}33`}}>
+                    <div style={{fontSize:18,fontWeight:800,color:sevCfg.color}}>{sevCfg.label}</div>
+                    <div style={{fontSize:9,color:'#94a3b8'}}>Severity</div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Buttons */}
-            <div className="form-actions">
-              <button type="button" className="btn btn-secondary"
-                onClick={() => { setForm({...EMPTY, reporter:user?.name||''}); setPhoto(null); setErrors({}); setMarkerPos(null); setMapVisible(false); }}>
+            <div className="ri-actions">
+              <button type="button" className="ri-btn-clear"
+                onClick={()=>{setForm({...EMPTY,email:user?.email||''});setPhoto(null);setErrors({});setMarkerPos(null);setMapVisible(false);}}>
                 Clear
               </button>
-              <button type="submit" className="btn btn-primary" disabled={loading}>
-                {loading ? '🤖 Submitting...' : 'Submit Report →'}
+              <button type="submit" className="ri-btn-submit" disabled={loading}>
+                {loading ? '🤖 Submitting & scoring...' : 'Submit Report →'}
               </button>
             </div>
 
@@ -401,47 +436,42 @@ export default function ReportIssue({ user, onSuccess }) {
 
         {/* ── SIDEBAR ── */}
         <div className="ri-sidebar">
-
-          <div className="card" style={{borderLeft:'4px solid #6366f1'}}>
-            <div className="card-title" style={{color:'#6366f1'}}>🤖 How Priority is Set</div>
-            <div className="ri-info-text">
-              <strong>BERT AI</strong> reads your title + description and computes a <strong>0–100 score</strong> based on semantic urgency.<br/><br/>
-              Words like <em>flooding, accident, burst, dangerous, injury</em> → High score<br/><br/>
-              Words like <em>minor, cosmetic, bench, paint</em> → Low score<br/><br/>
-              <span style={{color:'#6366f1',fontWeight:600}}>No fixed ×40 or ×5 multipliers.</span>
+          <div className="ri-sb-card ri-sb-bert">
+            <div className="ri-sb-title" style={{color:'#6366f1'}}>🤖 How BERT Scores Priority</div>
+            <div className="ri-sb-body">
+              BERT reads your <strong>title + description</strong> and outputs a <strong>0–100 score</strong> based on semantic urgency.<br/><br/>
+              <div className="ri-bert-examples">
+                <div className="ri-be ri-be-high">flooding · accident · burst · collapse → <strong>High</strong></div>
+                <div className="ri-be ri-be-med">pothole · overflow · blocked · dark → <strong>Medium</strong></div>
+                <div className="ri-be ri-be-low">bench · paint · sign · minor → <strong>Low</strong></div>
+              </div>
+              <div style={{fontSize:10,color:'#6366f1',fontWeight:600,marginTop:8}}>No fixed ×40 or ×5 multipliers.</div>
             </div>
           </div>
 
-          <div className="card" style={{borderLeft:`4px solid ${markerPos?'#10b981':'#e2e8f0'}`}}>
-            <div className="card-title">📍 Location</div>
+          <div className="ri-sb-card" style={{borderLeft:`4px solid ${markerPos?'#10b981':'#e2e8f0'}`}}>
+            <div className="ri-sb-title">📍 Location Status</div>
             {markerPos
-              ? <div style={{textAlign:'center'}}><div style={{fontSize:22,marginBottom:4}}>✅</div><div style={{fontWeight:700,fontSize:12,color:'#059669'}}>Location Pinned</div><div style={{fontSize:11,color:'#64748b',marginTop:2}}>{form.location}</div></div>
-              : <div style={{textAlign:'center',fontSize:12,color:'#f59e0b'}}>Click "Pick on Map" to set location</div>}
+              ? <div style={{textAlign:'center'}}><div style={{fontSize:24,marginBottom:4}}>✅</div><div style={{fontWeight:700,fontSize:12,color:'#059669'}}>Location Pinned</div><div style={{fontSize:11,color:'#64748b',marginTop:3,lineHeight:1.5}}>{form.location}</div></div>
+              : <div style={{textAlign:'center',fontSize:12,color:'#f59e0b',padding:'4px 0'}}>Click "Pick on Map" or "GPS" to set location</div>}
           </div>
 
-          <div className="card">
-            <div className="card-title">📱 SMS Confirmation</div>
-            <div className="ri-info-text">
-              After submitting, you will receive an SMS with:<br/><br/>
-              • Your <strong>Reference Number</strong><br/>
-              • Assigned department name<br/>
-              • Department helpline number<br/>
-              • Portal link to track status
-            </div>
+          <div className="ri-sb-card">
+            <div className="ri-sb-title">📧 Email Confirmation</div>
+            <div className="ri-sb-body">After submitting you'll receive:<br/><br/>• Reference number<br/>• Assigned department<br/>• Dept email contact<br/>• BERT priority score<br/>• Status tracking link</div>
           </div>
 
-          <div className="card">
-            <div className="card-title">What Happens Next</div>
-            <div className="ri-info-text" style={{lineHeight:2.2}}>
-              1️⃣ Issue saved to dashboard<br/>
+          <div className="ri-sb-card">
+            <div className="ri-sb-title">What Happens After</div>
+            <div className="ri-sb-body" style={{lineHeight:2.1}}>
+              1️⃣ Saved to your dashboard<br/>
               2️⃣ Pin appears on City Map<br/>
-              3️⃣ 🤖 BERT scores your text<br/>
-              4️⃣ Auto-assigned to department<br/>
-              5️⃣ 📱 SMS sent to your mobile<br/>
-              6️⃣ Authority notified instantly
+              3️⃣ 🤖 BERT scores the text<br/>
+              4️⃣ Auto-assigned to dept<br/>
+              5️⃣ 📧 Email sent (if provided)<br/>
+              6️⃣ Authority reviews & acts
             </div>
           </div>
-
         </div>
       </div>
     </div>

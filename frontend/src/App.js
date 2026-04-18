@@ -10,6 +10,7 @@ import MapView            from './pages/MapView';
 import ReportIssue        from './pages/ReportIssue';
 import AuthorityDashboard from './pages/AuthorityDashboard';
 import Sidebar            from './components/Sidebar';
+import axios              from 'axios';
 
 export default function App() {
   const [user,      setUser]   = useState(null);
@@ -20,6 +21,10 @@ export default function App() {
   const citizenLogin   = u => { setUser(u);  setScreen('citizen-app'); setPage('dashboard'); };
   const authorityLogin = a => { setAuth(a);  setScreen('authority-app'); };
   const logout         = () => { setUser(null); setAuth(null); setScreen('home'); };
+  const token = localStorage.getItem('token');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  }
 
   if (screen === 'home')            return <Home            onEnter={setScreen} />;
   if (screen === 'login')           return <Login           onLogin={citizenLogin}   onSwitch={() => setScreen('register')}       onBack={() => setScreen('home')} />;

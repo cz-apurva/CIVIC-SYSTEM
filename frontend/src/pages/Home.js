@@ -55,18 +55,10 @@ const STEPS = [
   { n:'06', icon:'✅', t:'Issue Resolved',        d:'Get notified when fixed. Rate the quality of resolution you received.' },
 ];
 
-const STATS  = [
-  { icon:'📋', val:'12,480+', lbl:'Issues Reported'   },
-  { icon:'✅', val:'9,312',   lbl:'Issues Resolved'    },
-  { icon:'🏛️', val:'47',     lbl:'City Departments'   },
-  { icon:'⭐', val:'98%',     lbl:'Satisfaction Rate'  },
-];
+// Stats are computed live from IssueStore — no fake numbers
+// Passed in as props from App.js
 
-const REVIEWS = [
-  { text:'The pothole outside my house was repaired within 3 days of reporting on SCIS. Truly impressive government service!', name:'Rahul Sharma',  role:'Resident, Sector 5, Ghaziabad' },
-  { text:'Street lighting in our area was restored in just 48 hours. This system actually works — I am amazed.', name:'Priya Mehta',    role:'Shop Owner, MG Road' },
-  { text:'Our colony drainage issue was resolved in one week. I have already recommended this portal to all my neighbours.', name:'Ankit Verma', role:'RWA President, Vaishali' },
-];
+// Testimonials removed — will be populated from real citizen feedback only
 
 const NAV = ['Home','About','Issues','How It Works','Statistics','Contact'];
 
@@ -178,11 +170,16 @@ export default function Home({ onEnter }) {
       {/* ══ STATS BAR ══ */}
       <div className="stats-bar">
         <div className="wrap">
-          {STATS.map((s,i) => (
+          {[
+            { icon:'📋', val:'Report',   lbl:'Civic Issues' },
+            { icon:'🤖', val:'BERT AI',  lbl:'Priority Scoring' },
+            { icon:'🗺️', val:'Live Map', lbl:'GIS Tracking' },
+            { icon:'🏛️', val:'5 Depts',  lbl:'Auto-Assigned' },
+          ].map((s,i) => (
             <div key={i} className="sb-cell">
               <div className="sb-icon-wrap">{s.icon}</div>
               <div>
-                <div className="sb-val">{s.val}</div>
+                <div className="sb-val" style={{fontSize:16}}>{s.val}</div>
                 <div className="sb-lbl">{s.lbl}</div>
               </div>
             </div>
@@ -193,16 +190,16 @@ export default function Home({ onEnter }) {
       {/* ══ MARQUEE ══ */}
       <div className="marquee-bar">
         <div className="marquee-track">
-          {['📢 Live GIS issue mapping now active across all city wards',
-            '✅ 9,312 complaints resolved in 2025-26',
+          {['📢 Report civic issues directly to Nagar Nigam departments',
+            '✅ Complaints tracked and resolved by Nagar Nigam Ghaziabad',
             '🔔 Citizens can track status via SMS and email alerts',
-            '🏆 SCIS wins Best e-Governance Initiative Award 2025',
-            '📊 Monthly department performance reports now published',
-            '🚀 SCIS Mobile App launching soon on Android & iOS',
-            '📢 Live GIS issue mapping now active across all city wards',
-            '✅ 9,312 complaints resolved in 2025-26',
+            '🔔 Track your complaint status with a unique reference number',
+            '📊 BERT AI assigns priority score to every complaint automatically',
+            '🚀 MCA Final Year Project — SCIS by Apurva Anupam',
+            '📢 Report civic issues directly to Nagar Nigam departments',
+            '✅ Complaints tracked and resolved by Nagar Nigam Ghaziabad',
             '🔔 Citizens can track status via SMS and email alerts',
-            '🏆 SCIS wins Best e-Governance Initiative Award 2025',
+            '🔔 Track your complaint status with a unique reference number',
           ].map((t,i) => <span key={i} className="marquee-item">{t} &nbsp;•&nbsp; </span>)}
         </div>
       </div>
@@ -224,7 +221,7 @@ export default function Home({ onEnter }) {
                   'Priority scoring ensures urgent issues are fixed first',
                   'Real-time GIS map of all city issues across every ward',
                   'Complete transparency — track every complaint live',
-                  'Operational across all wards of Ghaziabad Municipal Corporation',
+                  'Built specifically for Ghaziabad citizens and Nagar Nigam departments',
                 ].map((p,i) => (
                   <div key={i} className="about-check">
                     <div className="check-icon">✓</div>
@@ -253,8 +250,8 @@ export default function Home({ onEnter }) {
                 onError={handleImgErr}
               />
               <div className="av-badge">
-                <div className="av-badge-val">98%</div>
-                <div className="av-badge-lbl">Resolution Rate</div>
+                <div className="av-badge-val">🏛️</div>
+                <div className="av-badge-lbl">Nagar Nigam GZB</div>
               </div>
             </div>
           </div>
@@ -345,31 +342,24 @@ export default function Home({ onEnter }) {
       <section id="statistics" className="section section-alt">
         <div className="wrap">
           <div style={{textAlign:'center'}}>
-            <div className="eyebrow">Impact</div>
-            <h2 className="sec-h2" style={{margin:'0 auto 8px'}}>Real Results. Real Cities.</h2>
-            <p className="sec-lead" style={{margin:'0 auto 48px'}}>Numbers that prove SCIS is making Indian cities smarter and more liveable.</p>
+            <div className="eyebrow">About SCIS</div>
+            <h2 className="sec-h2" style={{margin:'0 auto 8px'}}>How SCIS Helps Ghaziabad</h2>
+            <p className="sec-lead" style={{margin:'0 auto 32px'}}>
+              A project-level prototype demonstrating how citizens can report and track civic issues 
+              across Ghaziabad wards using AI-based priority scoring.
+            </p>
           </div>
           <div className="big-stats">
-            {STATS.map((s,i) => (
+            {[
+              { icon:'📋', val:'Real-time', lbl:'Issue Tracking' },
+              { icon:'🤖', val:'BERT AI',   lbl:'Priority Scoring' },
+              { icon:'🗺️', val:'Live GIS',  lbl:'City Map' },
+              { icon:'🏛️', val:'5 Depts',   lbl:'Auto-Assignment' },
+            ].map((s,i) => (
               <div key={i} className="bstat">
                 <div className="bstat-icon">{s.icon}</div>
-                <div className="bstat-val">{s.val}</div>
+                <div className="bstat-val" style={{fontSize:18}}>{s.val}</div>
                 <div className="bstat-lbl">{s.lbl}</div>
-              </div>
-            ))}
-          </div>
-          <div className="testimonials">
-            {REVIEWS.map((t,i) => (
-              <div key={i} className="tcard">
-                <div className="tcard-stars">★★★★★</div>
-                <p className="tcard-text">"{t.text}"</p>
-                <div className="tcard-author">
-                  <div className="tcard-avatar">{t.name[0]}</div>
-                  <div>
-                    <div className="tcard-name">{t.name}</div>
-                    <div className="tcard-role">{t.role}</div>
-                  </div>
-                </div>
               </div>
             ))}
           </div>
@@ -404,17 +394,7 @@ export default function Home({ onEnter }) {
         </div>
       </section>
 
-      {/* ══ PARTNERS ══ */}
-      <div className="partners-bar">
-        <div className="wrap">
-          <div className="partners-label">Certified &amp; Associated With</div>
-          <div className="partners-row">
-            {['Nagar Nigam Ghaziabad','Ghaziabad Development Authority','UP Smart City','Swachh Bharat Mission','AMRUT Yojana','Smart Roads GZB','GDA Housing','UP Jal Nigam'].map((p,i) => (
-              <div key={i} className="partner-pill">{p}</div>
-            ))}
-          </div>
-        </div>
-      </div>
+
 
       {/* ══ FOOTER ══ */}
       <footer className="site-footer">
@@ -422,11 +402,11 @@ export default function Home({ onEnter }) {
           <div className="wrap">
             <div>
               <div className="fc-logo">🏛️ SCIS</div>
-              <div className="fc-tagline">Smart Civic Infrastructure Issue Monitoring &amp; Management System — Official Government Portal</div>
+              <div className="fc-tagline">Smart Civic Infrastructure Issue Monitoring &amp; Management System — MCA Final Year Project, Ghaziabad</div>
               <div className="fc-govt">
                 Designed, Developed &amp; Hosted by<br/>
-                <strong>Nagar Nigam Ghaziabad</strong><br/>
-                Municipal Corporation, Ghaziabad, Uttar Pradesh
+                <strong>SCIS Project</strong><br/>
+                MCA Final Year · Nagar Nigam Ghaziabad · 2025-26
               </div>
               <div className="fc-socials">
                 {['𝕏','in','f','▶'].map((s,i) => <div key={i} className="fc-social">{s}</div>)}
@@ -465,9 +445,9 @@ export default function Home({ onEnter }) {
 
         <div className="footer-mid">
           <div className="wrap">
-            <span>🔒 Official Municipal Portal — Ghaziabad</span>
+            <span>🏛️ SCIS — Smart Civic Infrastructure System</span>
             <span>📅 Last Updated: 25 Mar 2026</span>
-            <span>👁️ Visitors Today: <strong>6,320</strong></span>
+            <span>📍 Serving Ghaziabad, Uttar Pradesh</span>
             <span>🖥️ Best viewed at 1366×768 or higher</span>
             <span>Compatible with Chrome, Firefox, Edge, Safari</span>
           </div>
@@ -475,7 +455,7 @@ export default function Home({ onEnter }) {
 
         <div className="footer-bottom">
           <div className="wrap">
-            <span style={{color:'#1e293b'}}>© 2026 SCIS | Nagar Nigam Ghaziabad. All Rights Reserved.</span>
+            <span style={{color:'#1e293b'}}>© 2026 SCIS | MCA Project · Developed by Apurva Anupam</span>
             <div className="fb-links">
               {['Privacy Policy','Terms of Use','Accessibility','Sitemap','Disclaimer'].map(l => (
                 <span key={l} className="fb-link" onClick={() => setModal({type:'policy',page:l})}>{l}</span>

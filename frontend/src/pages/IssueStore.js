@@ -36,18 +36,24 @@ function keywordPriorityScore(title, description, category) {
 // ── Call real BERT via Node backend ──
 async function callBERT(title, description, category) {
   try {
-    const res = await axios.post('/api/bert-priority', { title, description, category }, { timeout: 20000 });
-    const d   = res.data;
-    // Validate — if score is NaN or missing, use fallback
+    // Reduced timeout to 3 seconds so the user doesn't wait forever for a 404
+    const res = await axios.post('/api/bert-priority', 
+      { title, description, category }, 
+      { timeout: 3000 } 
+    );
+    
+    const d = res.data;
     if (!d || isNaN(Number(d.bert_score))) throw new Error('invalid score');
+
     return {
       bert_score:      Math.round(Number(d.bert_score)),
       bert_label:      d.bert_label      || 'Medium',
       bert_confidence: parseFloat(d.bert_confidence) || 0.5,
       bert_method:     d.method          || 'BERT',
     };
-  } catch {
-    // BERT offline → keyword fallback — never returns NaN
+  } catch (error) {
+    // This catches the 404 or Timeout and uses your browser-side keyword logic
+    console.warn("BERT service unreachable. Using keyword-based fallback.");
     return keywordPriorityScore(title, description, category);
   }
 }
