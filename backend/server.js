@@ -23,8 +23,8 @@ app.use("/uploads", express.static("uploads"));
 // ── Routes ── (order matters — specific before generic)
 app.use("/api/auth",       authRoutes);
 app.use("/api/issues",     issueRoutes);
-app.use("/api/bert-priority", bertRoute);    // handles /api/bert-priority
-app.use("/api/send-email", emailRoute);   // handles /api/send-email
+app.use("/api", bertRoute);    // handles /api/bert-priority
+app.use("/api", emailRoute.router);   // handles /api/send-email
 
 // ── Health check ──
 app.get("/", (req, res) => {

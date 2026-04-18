@@ -16,6 +16,8 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+console.log("DEBUG: sendConfirmationEmail is:", typeof sendConfirmationEmail);
+
 router.post("/report", verifyToken, upload.single("image"), (req, res) => {
   const { title, description, category, lat, lng, email, bert_score, bert_label, department, refNo } = req.body;
   const image = req.file ? req.file.filename : null;
@@ -58,15 +60,22 @@ router.get("/all", verifyToken, (req, res) => {
 });
 
 router.post("/send-email", verifyToken, async (req, res) => {
+  // 1. Log the body to see what the frontend actually sent
+  console.log("BACKEND RECEIVED BODY:", req.body);
+
+  // 2. Extract the email (The frontend is sending it as 'to')
   const { to, refNo, title, department, deptEmail } = req.body;
 
   try {
-    // Call the function from your email.js file
+    // 3. Explicitly pass 'to' as the first argument
+    if (!to) throw new Error("Recipient address 'to' is missing in request body");
+
     await sendConfirmationEmail(to, refNo, title, department, deptEmail);
-    res.status(200).json({ message: "Email sent successfully" });
+    
+    res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Email processing failed:", error);
-    res.status(500).json({ error: "Failed to dispatch email" });
+    console.error("FINAL EMAIL ERROR:", error.message);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

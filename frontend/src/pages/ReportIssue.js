@@ -49,25 +49,34 @@ async function reverseGeocode(lat, lng) {
 // Simulated email — in production hook to backend /api/send-email
 async function sendEmailConfirmation(email, refNo, title, dept, deptEmail) {
   try {
-    const token = localStorage.getItem('token'); // Get the user's login token
+    const token = localStorage.getItem('token');
 
+    // FIX: Ensure the path is /api/issues/send-email
     const response = await fetch('/api/issues/send-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}` // Added this
+        'Authorization': `Bearer ${token}` // Ensure token is sent!
       },
-      body: JSON.stringify({ to: email, refNo, title, department: dept, deptEmail }),
+      body: JSON.stringify({ 
+        to: email, // Backend expects 'to'
+        refNo, 
+        title, 
+        department: dept, 
+        deptEmail 
+      }),
     });
 
-    if (response.ok) {
-      console.log(`[REAL EMAIL] Sent successfully to: ${email}`);
-    } else {
-      throw new Error('Server rejected email request');
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Server error');
     }
+
+    console.log("✅ Real Email Sent!");
   } catch (err) {
-    // Fallback log if the backend is down or email fails
+    // This is the log you are seeing now
     console.log(`[EMAIL FAILED] Using fallback log: To:${email} Ref:${refNo}`);
+    console.error("Actual Error:", err.message); // <--- Add this to see the real reason
   }
 }
 
