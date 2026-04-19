@@ -36,24 +36,18 @@ function keywordPriorityScore(title, description, category) {
 // ── Call real BERT via Node backend ──
 async function callBERT(title, description, category) {
   try {
-    // Reduced timeout to 3 seconds so the user doesn't wait forever for a 404
-    const res = await axios.post('/api/bert-priority', 
-      { title, description, category }, 
-      { timeout: 3000 } 
-    );
-    
-    const d = res.data;
+    const res = await axios.post('/api/bert-priority', { title, description, category }, { timeout: 20000 });
+    const d   = res.data;
+    // Validate — if score is NaN or missing, use fallback
     if (!d || isNaN(Number(d.bert_score))) throw new Error('invalid score');
-
     return {
       bert_score:      Math.round(Number(d.bert_score)),
       bert_label:      d.bert_label      || 'Medium',
       bert_confidence: parseFloat(d.bert_confidence) || 0.5,
       bert_method:     d.method          || 'BERT',
     };
-  } catch (error) {
-    // This catches the 404 or Timeout and uses your browser-side keyword logic
-    console.warn("BERT service unreachable. Using keyword-based fallback.");
+  } catch {
+    // BERT offline → keyword fallback — never returns NaN
     return keywordPriorityScore(title, description, category);
   }
 }
@@ -67,7 +61,7 @@ const SAMPLE = [
   { _id:'6', title:'Drain blocked — flooding',   category:'Drainage Problem',        location:'Lohia Nagar',    severity:3, status:'Pending',     createdAt:'2026-03-18', lat:28.661, lng:77.399, bert_score:88, bert_label:'High',   bert_confidence:0.88, bert_method:'BERT', reporter:'Demo Citizen', phone:'' },
 ];
 
-const LS_KEY = 'scis_issues_v4';
+const LS_KEY = 'scis_issues_v5';
 function loadFromStorage() { try { const r = localStorage.getItem(LS_KEY); if (r) return JSON.parse(r); } catch {} return null; }
 function saveToStorage(issues) { try { localStorage.setItem(LS_KEY, JSON.stringify(issues)); } catch {} }
 
@@ -98,7 +92,6 @@ export function IssueProvider({ children }) {
       _id:       tempId,
       createdAt: new Date().toISOString(),
       status:    'Pending',
-      ...quickScore,   // immediate non-NaN score
     };
     setIssues(prev => [newIssue, ...prev]);
 

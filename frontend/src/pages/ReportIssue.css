@@ -127,3 +127,47 @@
   .ri-sidebar { display:none; }
   .ri-row { grid-template-columns:1fr; }
 }
+/* ══════════════════════════════════════
+   Copy full ReportIssue.css from civic-v6
+   then append these new BERT severity styles
+══════════════════════════════════════ */
+
+/* ── BERT auto-severity display box ── */
+.ri-bert-sev-box {
+  display: flex; align-items: center; gap: 16px;
+  background: rgba(99,102,241,.05);
+  border: 1.5px solid rgba(99,102,241,.2);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+}
+.ri-bsb-left  { flex: 1; }
+.ri-bsb-title { font-size: 13px; font-weight: 700; color: #6366f1; margin-bottom: 3px; }
+.ri-bsb-sub   { font-size: 11px; color: #94a3b8; }
+.ri-bsb-right { flex-shrink: 0; min-width: 160px; }
+
+.ri-bsb-empty {
+  font-size: 11px; color: #cbd5e1; font-style: italic; text-align: center; padding: 6px;
+}
+.ri-bsb-analysing {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: #6366f1; font-style: italic;
+}
+.ri-bsb-spinner {
+  width: 14px; height: 14px; border: 2px solid rgba(99,102,241,.2);
+  border-top-color: #6366f1; border-radius: 50%;
+  animation: spin .7s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.ri-bsb-result {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 8px; border: 1px solid;
+  transition: all .3s;
+}
+.ri-bsb-badge {
+  color: #fff; font-size: 13px; font-weight: 800;
+  padding: 5px 14px; border-radius: 7px; flex-shrink: 0;
+  letter-spacing: .3px;
+}
+.ri-bsb-hint { font-size: 10px; color: #64748b; line-height: 1.5; }
